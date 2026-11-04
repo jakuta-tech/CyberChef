@@ -5,23 +5,21 @@
  */
 
 import Operation from "../Operation.mjs";
-import otp from "otp";
-import ToBase32 from "./ToBase32.mjs";
+import OperationError from "../errors/OperationError.mjs";
+import * as OTPAuth from "otpauth";
 
 /**
  * Generate TOTP operation
  */
 class GenerateTOTP extends Operation {
-
     /**
-     * GenerateTOTP constructor
+     *
      */
     constructor() {
         super();
-
         this.name = "Generate TOTP";
         this.module = "Default";
-        this.description = "The Time-based One-Time Password algorithm (TOTP) is an algorithm that computes a one-time password from a shared secret key and the current time. It has been adopted as Internet Engineering Task Force standard RFC 6238, is the cornerstone of Initiative For Open Authentication (OAUTH), and is used in a number of two-factor authentication systems. A TOTP is an HOTP where the counter is the current time.<br><br>Enter the secret as the input or leave it blank for a random secret to be generated. T0 and T1 are in seconds.";
+        this.description = "The Time-based One-Time Password algorithm (TOTP) is an algorithm that computes a one-time password from a shared secret key and the current time. It has been adopted as Internet Engineering Task Force standard RFC 6238, is the cornerstone of Initiative For Open Authentication (OAUTH), and is used in a number of two-factor authentication systems. A TOTP is an HOTP where the counter is the current time.<br><br>Enter the secret as the input or leave it blank for a random secret to be generated. The secret must be a valid base32 string (characters A–Z and 2–7). T0 and T1 are in seconds.";
         this.infoURL = "https://wikipedia.org/wiki/Time-based_One-time_Password_algorithm";
         this.inputType = "ArrayBuffer";
         this.outputType = "string";
@@ -29,48 +27,64 @@ class GenerateTOTP extends Operation {
             {
                 "name": "Name",
                 "type": "string",
-                "value": ""
-            },
-            {
-                "name": "Key size",
-                "type": "number",
-                "value": 32
+                "value": "Account",
+                "allowEmpty": false
             },
             {
                 "name": "Code length",
                 "type": "number",
-                "value": 6
+                "value": 6,
+                "min": 6,
+                "max": 8,
+                "integer": true
             },
             {
                 "name": "Epoch offset (T0)",
                 "type": "number",
-                "value": 0
+                "value": 0,
+                "min": 0,
+                "integer": true
             },
             {
                 "name": "Interval (T1)",
                 "type": "number",
-                "value": 30
+                "value": 30,
+                "min": 1,
+                "integer": true
             }
         ];
     }
 
     /**
-     * @param {ArrayBuffer} input
-     * @param {Object[]} args
-     * @returns {string}
+     *
      */
     run(input, args) {
-        const otpObj = otp({
-            name: args[0],
-            keySize: args[1],
-            codeLength: args[2],
-            secret: (new ToBase32).run(input, []).split("=")[0],
-            epoch: args[3],
-            timeSlice: args[4]
-        });
-        return `URI: ${otpObj.totpURL}\n\nPassword: ${otpObj.totp()}`;
-    }
+        const secretStr = new TextDecoder("utf-8").decode(input).trim();
 
+        let secret;
+        try {
+            secret = secretStr ?
+                OTPAuth.Secret.fromBase32(secretStr.toUpperCase().replace(/\s+/g, "")) :
+                new OTPAuth.Secret();
+        } catch {
+            throw new OperationError("Invalid secret. The input must be a valid base32 string (characters A–Z and 2–7).");
+        }
+
+        const totp = new OTPAuth.TOTP({
+            issuer: "",
+            label: args[0],
+            algorithm: "SHA1",
+            digits: args[1],
+            period: args[3],
+            epoch: args[2] * 1000, // Convert seconds to milliseconds
+            secret
+        });
+
+        const uri = totp.toString();
+        const code = totp.generate();
+
+        return `URI: ${uri}\n\nPassword: ${code}`;
+    }
 }
 
 export default GenerateTOTP;

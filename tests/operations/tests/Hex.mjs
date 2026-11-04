@@ -2,6 +2,22 @@ import TestRegister from "../../lib/TestRegister.mjs";
 
 TestRegister.addTests([
     {
+        name: "To Hex - too many ingredients",
+        input: "aberystwyth",
+        expectedError: true,
+        expectedOutput: "Error: Failed to hydrate operation 'To Hex': Error: Failed to set ingredient values: more values provided than available ingredients (3 vs 2)",
+        recipeConfig: [
+            {
+                "op": "To Hex",
+                "args": [
+                    "None",
+                    0,
+                    "extra"
+                ]
+            },
+        ]
+    },
+    {
         name: "ASCII to Hex stream",
         input: "aberystwyth",
         expectedOutput: "6162657279737477797468",
@@ -38,6 +54,20 @@ TestRegister.addTests([
                 "op": "To Hex",
                 "args": [
                     "0x with comma",
+                    0
+                ]
+            }
+        ]
+    },
+    {
+        name: "ASCII to Hex with percent deliminator",
+        input: "aberystwyth",
+        expectedOutput: "%61%62%65%72%79%73%74%77%79%74%68",
+        recipeConfig: [
+            {
+                "op": "To Hex",
+                "args": [
+                    "Percent",
                     0
                 ]
             }

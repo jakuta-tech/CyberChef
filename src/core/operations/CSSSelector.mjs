@@ -6,7 +6,7 @@
 
 import Operation from "../Operation.mjs";
 import OperationError from "../errors/OperationError.mjs";
-import xmldom from "xmldom";
+import xmldom from "@xmldom/xmldom";
 import nwmatcher from "nwmatcher";
 
 /**
@@ -77,7 +77,7 @@ class CSSSelector extends Operation {
                 case node.TEXT_NODE: return node.wholeText;
                 case node.COMMENT_NODE: return node.data;
                 case node.DOCUMENT_NODE: return node.outerHTML;
-                default: throw new Error("Unknown Node Type: " + node.nodeType);
+                default: throw new OperationError("Unknown Node Type: " + node.nodeType);
             }*/
         };
 

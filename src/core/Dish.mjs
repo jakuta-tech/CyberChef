@@ -43,11 +43,13 @@ class Dish {
             Object.prototype.hasOwnProperty.call(dishOrInput, "value") &&
             Object.prototype.hasOwnProperty.call(dishOrInput, "type")) {
             this.set(dishOrInput.value, dishOrInput.type);
-        // input and type defined separately
-        } else if (dishOrInput && type !== null) {
+        // input and type defined separately. 0 is falsy but is a valid value;
+        // Boolean and other unsupported falsy inputs keep the previous
+        // empty-dish behaviour.
+        } else if ((dishOrInput || dishOrInput === 0) && type !== null) {
             this.set(dishOrInput, type);
         // No type declared, so infer it.
-        } else if (dishOrInput) {
+        } else if (dishOrInput || dishOrInput === 0) {
             const inferredType = Dish.typeEnum(dishOrInput.constructor.name);
             this.set(dishOrInput, inferredType);
         }
@@ -128,10 +130,9 @@ class Dish {
      * If running in a browser, get is asynchronous.
      *
      * @param {number} type - The data type of value, see Dish enums.
-     * @param {boolean} [notUTF8=false] - Do not treat strings as UTF8.
      * @returns {* | Promise} - (Browser) A promise | (Node) value of dish in given type
      */
-    get(type, notUTF8=false) {
+    get(type) {
         if (typeof type === "string") {
             type = Dish.typeEnum(type);
         }
@@ -140,13 +141,13 @@ class Dish {
 
             // Node environment => _translate is sync
             if (isNodeEnvironment()) {
-                this._translate(type, notUTF8);
+                this._translate(type);
                 return this.value;
 
             // Browser environment => _translate is async
             } else {
                 return new Promise((resolve, reject) => {
-                    this._translate(type, notUTF8)
+                    this._translate(type)
                         .then(() => {
                             resolve(this.value);
                         })
@@ -190,12 +191,11 @@ class Dish {
      * @Node
      *
      * @param {number} type - The data type of value, see Dish enums.
-     * @param {boolean} [notUTF8=false] - Do not treat strings as UTF8.
      * @returns {Dish | Promise} - (Browser) A promise | (Node) value of dish in given type
      */
-    presentAs(type, notUTF8=false) {
+    presentAs(type) {
         const clone = this.clone();
-        return clone.get(type, notUTF8);
+        return clone.get(type);
     }
 
 
@@ -294,11 +294,7 @@ class Dish {
                     and reinitialise it as a BigNumber object.
                 */
                 if (Object.keys(this.value).sort().equals(["c", "e", "s"])) {
-                    const temp = new BigNumber();
-                    temp.c = this.value.c;
-                    temp.e = this.value.e;
-                    temp.s = this.value.s;
-                    this.value = temp;
+                    this.value = new BigNumber({ s: this.value.s, e: this.value.e, c: this.value.c, _isBigNumber: true});
                     return true;
                 }
                 return false;
@@ -414,17 +410,16 @@ class Dish {
      * If running in the browser, _translate is asynchronous.
      *
      * @param {number} toType - The data type of value, see Dish enums.
-     * @param {boolean} [notUTF8=false] - Do not treat strings as UTF8.
      * @returns {Promise || undefined}
      */
-    _translate(toType, notUTF8=false) {
+    _translate(toType) {
         log.debug(`Translating Dish from ${Dish.enumLookup(this.type)} to ${Dish.enumLookup(toType)}`);
 
         // Node environment => translate is sync
         if (isNodeEnvironment()) {
             this._toArrayBuffer();
             this.type = Dish.ARRAY_BUFFER;
-            this._fromArrayBuffer(toType, notUTF8);
+            this._fromArrayBuffer(toType);
 
         // Browser environment => translate is async
         } else {
@@ -486,18 +481,17 @@ class Dish {
      * Convert this.value to the given type from ArrayBuffer
      *
      * @param {number} toType - the Dish enum to convert to
-     * @param {boolean} [notUTF8=false] - Do not treat strings as UTF8.
     */
-    _fromArrayBuffer(toType, notUTF8) {
+    _fromArrayBuffer(toType) {
 
         // Using 'bind' here to allow this.value to be mutated within translation functions
         const toTypeFunctions = {
-            [Dish.STRING]:          () => DishString.fromArrayBuffer.bind(this)(notUTF8),
-            [Dish.NUMBER]:          () => DishNumber.fromArrayBuffer.bind(this)(notUTF8),
-            [Dish.HTML]:            () => DishHTML.fromArrayBuffer.bind(this)(notUTF8),
+            [Dish.STRING]:          () => DishString.fromArrayBuffer.bind(this)(),
+            [Dish.NUMBER]:          () => DishNumber.fromArrayBuffer.bind(this)(),
+            [Dish.HTML]:            () => DishHTML.fromArrayBuffer.bind(this)(),
             [Dish.ARRAY_BUFFER]:    () => {},
-            [Dish.BIG_NUMBER]:      () => DishBigNumber.fromArrayBuffer.bind(this)(notUTF8),
-            [Dish.JSON]:            () => DishJSON.fromArrayBuffer.bind(this)(notUTF8),
+            [Dish.BIG_NUMBER]:      () => DishBigNumber.fromArrayBuffer.bind(this)(),
+            [Dish.JSON]:            () => DishJSON.fromArrayBuffer.bind(this)(),
             [Dish.FILE]:            () => DishFile.fromArrayBuffer.bind(this)(),
             [Dish.LIST_FILE]:       () => DishListFile.fromArrayBuffer.bind(this)(),
             [Dish.BYTE_ARRAY]:      () => DishByteArray.fromArrayBuffer.bind(this)(),

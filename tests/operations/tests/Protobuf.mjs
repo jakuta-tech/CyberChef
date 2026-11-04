@@ -10,6 +10,88 @@ import TestRegister from "../../lib/TestRegister.mjs";
 
 TestRegister.addTests([
     {
+        name: "Protobuf Decode: malformed input reports byte offset",
+        input: "08",
+        expectedOutput: "Exhausted Buffer at byte offset 1",
+        recipeConfig: [
+            {
+                "op": "From Hex",
+                "args": ["Auto"]
+            },
+            {
+                "op": "Protobuf Decode",
+                "args": ["", false, false]
+            }
+        ]
+    },
+    {
+        name: "Protobuf Decode: invalid wire type reports byte offset",
+        input: "0f",
+        expectedOutput: "Unknown type 0x7 at byte offset 0",
+        recipeConfig: [
+            {
+                "op": "From Hex",
+                "args": ["Auto"]
+            },
+            {
+                "op": "Protobuf Decode",
+                "args": ["", false, false]
+            }
+        ]
+    },
+    {
+        name: "Protobuf Decode: continued field header reports byte offset",
+        input: "80",
+        expectedOutput: "Exhausted Buffer at byte offset 1",
+        recipeConfig: [
+            { "op": "From Hex", "args": ["Auto"] },
+            { "op": "Protobuf Decode", "args": ["", false, false] }
+        ]
+    },
+    {
+        name: "Protobuf Decode: truncated fixed32 reports byte offset",
+        input: "05",
+        expectedOutput: "Exhausted Buffer at byte offset 1",
+        recipeConfig: [
+            { "op": "From Hex", "args": ["Auto"] },
+            { "op": "Protobuf Decode", "args": ["", false, false] }
+        ]
+    },
+    {
+        name: "Protobuf Decode: truncated fixed64 reports byte offset",
+        input: "0901020304050607",
+        expectedOutput: "Exhausted Buffer at byte offset 8",
+        recipeConfig: [
+            { "op": "From Hex", "args": ["Auto"] },
+            { "op": "Protobuf Decode", "args": ["", false, false] }
+        ]
+    },
+    {
+        name: "Protobuf Decode: truncated length-delimited payload reports byte offset",
+        input: "0a030102",
+        expectedOutput: "Exhausted Buffer at byte offset 4",
+        recipeConfig: [
+            { "op": "From Hex", "args": ["Auto"] },
+            { "op": "Protobuf Decode", "args": ["", false, false] }
+        ]
+    },
+    {
+        name: "Protobuf Decode: schema-backed nested failure reports absolute byte offset",
+        input: "0a0108",
+        expectedOutput: "Input RangeError: index out of range: 3 + 1 > 3 at byte offset 3",
+        recipeConfig: [
+            { "op": "From Hex", "args": ["Auto"] },
+            {
+                "op": "Protobuf Decode",
+                "args": [
+                    "message Outer { optional Inner inner = 1; } message Inner { optional int32 value = 1; }",
+                    false,
+                    false
+                ]
+            }
+        ]
+    },
+    {
         name: "Protobuf Decode: no schema",
         input: "0d1c0000001203596f751a024d65202b2a0a0a066162633132331200",
         expectedOutput: JSON.stringify({
@@ -40,10 +122,10 @@ TestRegister.addTests([
             "Apple": [
                 28
             ],
-            "Banana": "You",
             "Carrot": [
                 "Me"
-            ]
+            ],
+            "Banana": "You"
         }, null, 4),
         recipeConfig: [
             {
@@ -72,10 +154,10 @@ TestRegister.addTests([
                 "Apple": [
                     28
                 ],
-                "Banana": "You",
                 "Carrot": [
                     "Me"
-                ]
+                ],
+                "Banana": "You"
             },
             "Unknown Fields": {
                 "4": 43,
@@ -111,10 +193,10 @@ TestRegister.addTests([
             "Apple": [
                 28
             ],
-            "Banana": "You",
             "Carrot": [
                 "Me"
             ],
+            "Banana": "You",
             "Date": 43,
             "Elderberry": {
                 "Fig": "abc123",
@@ -154,10 +236,10 @@ TestRegister.addTests([
         input: "0d1c0000001203596f751a024d65202b2a0a0a06616263313233120031ba32a96cc10200003801",
         expectedOutput: JSON.stringify({
             "Test": {
-                "Banana (string)": "You",
                 "Carrot (string)": [
                     "Me"
                 ],
+                "Banana (string)": "You",
                 "Date (int32)": 43,
                 "Imbe (Options)": "Option1"
             },

@@ -723,6 +723,39 @@ TestRegister.addTests([
         ]
     },
     {
+        name: "HMAC: Decimal key space-delimited matches Latin1 key (fromDecimal Auto delimiter regression)",
+        input: "Hello, World!",
+        expectedOutput: "9b641a008211bb0464a10899d5b37a24ab08ffcf839f5e74d17d99f856530957",
+        recipeConfig: [
+            {
+                "op": "HMAC",
+                "args": [{"option": "Decimal", "string": "65 65"}, "SHA256"]
+            }
+        ]
+    },
+    {
+        name: "HMAC: Latin1 key matches space-delimited Decimal key (fromDecimal Auto delimiter regression)",
+        input: "Hello, World!",
+        expectedOutput: "9b641a008211bb0464a10899d5b37a24ab08ffcf839f5e74d17d99f856530957",
+        recipeConfig: [
+            {
+                "op": "HMAC",
+                "args": [{"option": "Latin1", "string": "AA"}, "SHA256"]
+            }
+        ]
+    },
+    {
+        name: "HMAC: Decimal key comma-delimited matches Latin1 key (fromDecimal Auto delimiter regression)",
+        input: "Hello, World!",
+        expectedOutput: "9b641a008211bb0464a10899d5b37a24ab08ffcf839f5e74d17d99f856530957",
+        recipeConfig: [
+            {
+                "op": "HMAC",
+                "args": [{"option": "Decimal", "string": "65,65"}, "SHA256"]
+            }
+        ]
+    },
+    {
         name: "MD5: Complex bytes",
         input: "10dc10e32010de10d010dc10d810d910d010e12e",
         expectedOutput: "4f4f02e2646545aa8fc42f613c9aa068",
@@ -994,6 +1027,17 @@ TestRegister.addTests([
         ]
     },
     {
+        name: "Bcrypt compare: invalid salt version",
+        input: "password",
+        expectedOutput: "Error: Invalid salt version: $a",
+        recipeConfig: [
+            {
+                op: "Bcrypt compare",
+                args: ["$ab$04$K.H1WlFDQ/iIo/PiprT/puwluJ5rzuSE5q8D/Fk3NuLgU2aXiGR9m"]
+            }
+        ]
+    },
+    {
         name: "Scrypt: RFC test vector 1",
         input: "",
         expectedOutput: "77d6576238657b203b19ca42c18a0497f16b4844e3074ae8dfdffa3fede21442fcd0069ded0948f8326a753a0fc81f17e8d3e0fb2e0d3628cf35e20c38d18906",
@@ -1094,8 +1138,8 @@ TestRegister.addTests([
         expectedOutput: "981e5f3ca30c841487830f84fb433e13ac1101569b9c13584ac483234cd656c0",
         recipeConfig: [
             {
-                op: "GOST hash",
-                args: ["D-A"]
+                op: "GOST Hash",
+                args: ["GOST 28147 (1994)", "256", "D-A"]
             }
         ]
     },
@@ -1105,11 +1149,11 @@ TestRegister.addTests([
         expectedOutput: "2cefc2f7b7bdc514e18ea57fa74ff357e7fa17d652c75f69cb1be7893ede48eb",
         recipeConfig: [
             {
-                op: "GOST hash",
-                args: ["D-A"]
+                op: "GOST Hash",
+                args: ["GOST 28147 (1994)", "256", "D-A"]
             }
         ]
-    }
+    },
     /* { // This takes a LONG time to run (over a minute usually).
         name: "Scrypt: RFC test vector 4",
         input: "pleaseletmein",
@@ -1127,4 +1171,36 @@ TestRegister.addTests([
             }
         ]
     }, */
+    {
+        name: "Argon2",
+        input: "argon2password",
+        expectedOutput: "$argon2i$v=19$m=4096,t=3,p=1$c29tZXNhbHQ$s43my9eBljQADuF/LWCG8vGqwAJzOorKQ0Yog8jFvbw",
+        recipeConfig: [
+            {
+                op: "Argon2",
+                args: [
+                    {"option": "UTF8", "string": "somesalt"},
+                    3,
+                    4096,
+                    1,
+                    32,
+                    "Argon2i",
+                    "Encoded hash"
+                ]
+            }
+        ]
+    },
+    {
+        name: "Argon2 compare",
+        input: "argon2password",
+        expectedOutput: "Match: argon2password",
+        recipeConfig: [
+            {
+                op: "Argon2 compare",
+                args: [
+                    "$argon2i$v=19$m=4096,t=3,p=1$c29tZXNhbHQ$s43my9eBljQADuF/LWCG8vGqwAJzOorKQ0Yog8jFvbw"
+                ]
+            }
+        ]
+    }
 ]);

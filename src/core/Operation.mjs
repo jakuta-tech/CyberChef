@@ -5,6 +5,7 @@
  */
 
 import Dish from "./Dish.mjs";
+import OperationError from "./errors/OperationError.mjs";
 import Ingredient from "./Ingredient.mjs";
 
 /**
@@ -184,11 +185,31 @@ class Operation {
             if (ing.disabled) conf.disabled = ing.disabled;
             if (ing.target) conf.target = ing.target;
             if (ing.defaultIndex) conf.defaultIndex = ing.defaultIndex;
+            if (ing.maxLength) conf.maxLength = ing.maxLength;
             if (typeof ing.min === "number") conf.min = ing.min;
             if (typeof ing.max === "number") conf.max = ing.max;
             if (ing.step) conf.step = ing.step;
+            if (typeof ing.integer !== "undefined") conf.integer = ing.integer;
+            if (typeof ing.allowEmpty !== "undefined") conf.allowEmpty = ing.allowEmpty;
             return conf;
         });
+    }
+
+
+    /**
+     * Validates the operation's ingredients against their defined constraints.
+     *
+     * @param {Object[]} [args] - Optional list of argument values to validate. If not provided, validates the current ingredient values.
+     * @returns {boolean} - True if valid, throws an OperationError if invalid.
+     */
+    validateIngredients(args) {
+        const values = args || this.ingValues;
+        this._ingList.forEach((ing, i) => {
+            if (i < values.length) {
+                ing.validate(values[i]);
+            }
+        });
+        return true;
     }
 
 
@@ -221,8 +242,21 @@ class Operation {
      * @param {Object[]} ingValues
      */
     set ingValues(ingValues) {
+        if (ingValues.length > this._ingList.length) {
+            throw new OperationError(`Failed to set ingredient values: more values provided than available ingredients (${ingValues.length} vs ${this._ingList.length})`);
+        }
+
         ingValues.forEach((val, i) => {
-            this._ingList[i].value = val;
+            try {
+                const ingredient = this._ingList[i],
+                    value = ingredient.type === "number" && Number.isNaN(val) ?
+                        ingredient.defaultValue :
+                        val;
+
+                ingredient.value = value;
+            } catch (err) {
+                throw new OperationError(`Failed to set value of ingredient '${this._ingList[i].name}': ${err}`);
+            }
         });
     }
 

@@ -7,7 +7,7 @@
  * @license Apache-2.0
  */
 import TestRegister from "../../lib/TestRegister.mjs";
-import { JPG_RAW } from "../samples/Images.mjs";
+import { JPG_RAW } from "../../samples/Images.mjs";
 
 TestRegister.addTests([
     {
@@ -68,7 +68,7 @@ TestRegister.addTests([
     {
         name: "Magic Chain: Base64",
         input: "WkVkV2VtUkRRbnBrU0Vwd1ltMWpQUT09",
-        expectedMatch: /From_Base64\('A-Za-z0-9\+\/=',true\)\nFrom_Base64\('A-Za-z0-9\+\/=',true\)\nFrom_Base64\('A-Za-z0-9\+\/=',true\)/,
+        expectedMatch: /From_Base64\('A-Za-z0-9\+\/=',true,false\)\nFrom_Base64\('A-Za-z0-9\+\/=',true,false\)\nFrom_Base64\('A-Za-z0-9\+\/=',true,false\)/,
         recipeConfig: [
             {
                 op: "Magic",
@@ -79,7 +79,7 @@ TestRegister.addTests([
     {
         name: "Magic Chain: Hex -> Hexdump -> Base64",
         input: "MDAwMDAwMDAgIDM3IDM0IDIwIDM2IDM1IDIwIDM3IDMzIDIwIDM3IDM0IDIwIDMyIDMwIDIwIDM3ICB8NzQgNjUgNzMgNzQgMjAgN3wKMDAwMDAwMTAgIDMzIDIwIDM3IDM0IDIwIDM3IDMyIDIwIDM2IDM5IDIwIDM2IDY1IDIwIDM2IDM3ICB8MyA3NCA3MiA2OSA2ZSA2N3w=",
-        expectedMatch: /From_Base64\('A-Za-z0-9\+\/=',true\)\nFrom_Hexdump\(\)\nFrom_Hex\('Space'\)/,
+        expectedMatch: /From_Base64\('A-Za-z0-9\+\/=',true,false\)\nFrom_Hexdump\(\)\nFrom_Hex\('Space'\)/,
         recipeConfig: [
             {
                 op: "Magic",
@@ -150,6 +150,50 @@ TestRegister.addTests([
             {
                 op: "Magic",
                 args: [1, false, false]
+            }
+        ]
+    },
+    {
+        name: "Magic: invalid zero A1Z26 values do not match",
+        input: "0,0",
+        unexpectedMatch: /A1Z26 Cipher Decode/,
+        recipeConfig: [
+            {
+                op: "Magic",
+                args: [0, false, false]
+            }
+        ]
+    },
+    {
+        name: "Magic: invalid high A1Z26 values do not match",
+        input: "27,1",
+        unexpectedMatch: /A1Z26 Cipher Decode/,
+        recipeConfig: [
+            {
+                op: "Magic",
+                args: [0, false, false]
+            }
+        ]
+    },
+    {
+        name: "Magic: valid leading-zero A1Z26 values match",
+        input: "26,01",
+        expectedMatch: /A1Z26 Cipher Decode/,
+        recipeConfig: [
+            {
+                op: "Magic",
+                args: [0, false, false]
+            }
+        ]
+    },
+    {
+        name: "Magic: valid leading-zero A1Z26 values match with two digits",
+        input: "09,10",
+        expectedMatch: /A1Z26 Cipher Decode/,
+        recipeConfig: [
+            {
+                op: "Magic",
+                args: [0, false, false]
             }
         ]
     }
